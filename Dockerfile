@@ -1,4 +1,4 @@
-FROM gcr.io/jenkins-x-labs-bdd/mink/mink:v20201121-local-d4b0e10e-dirty@sha256:f95d488e1436ecc4bee3dbe59ba2e783e2e367791f1f41201cc9046a88623a32
+FROM gcr.io/jenkinsxio/mink/mink:v20201123-local-7fd0bff2-dirty
 
 ARG BUILD_DATE
 ARG VERSION
