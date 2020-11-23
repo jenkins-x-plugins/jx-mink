@@ -15,7 +15,7 @@ RUN addgroup -S app \
 
 RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   cd /tmp && \
-  curl -L https://github.com/jenkins-x/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
+  curl -L https://github.com/jenkins-x-plugins/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
   mv jx-mink /usr/bin
 
 ENTRYPOINT ["jx-mink"]
