@@ -1,7 +1,0 @@
-FROM busybox
-
-FROM gcr.io/kaniko-project/executor:multi-arch
-
-COPY --from=0 / /
-
-ENV PATH /usr/local/bin:/bin:/usr/bin:/kaniko
