@@ -13,7 +13,7 @@ RUN addgroup -S app \
     && apk --no-cache add \
     curl git
 
-ADD minx.sh kaniko.sh /user/bin/
+ADD minx.sh kaniko.sh /usr/bin/
 
 RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   cd /tmp && \
