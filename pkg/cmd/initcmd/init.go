@@ -8,15 +8,22 @@ import (
 	"strings"
 
 	"github.com/jenkins-x-plugins/jx-mink/pkg/rootcmd"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/cmdrunner"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/templates"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/options"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/termcolor"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+)
+
+const (
+	minkFileName = ".mink.yaml"
 )
 
 var (
@@ -36,9 +43,11 @@ var (
 // Options the options for the command
 type Options struct {
 	options.BaseOptions
-	Dir         string
-	Dockerfile  string
-	MinkEnabled bool
+	Dir           string
+	Dockerfile    string
+	MinkEnabled   bool
+	CommandRunner cmdrunner.CommandRunner
+	GitClient     gitclient.Interface
 }
 
 // NewCmdMinkInit creates a command object for the command
@@ -88,7 +97,7 @@ func (o *Options) Run() error {
 		return errors.Wrapf(err, "failed to add image to values file")
 	}
 
-	minkFile := filepath.Join(o.Dir, ".mink.yaml")
+	minkFile := filepath.Join(o.Dir, minkFileName)
 	exists, err := files.FileExists(minkFile)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check if file exists %s", minkFile)
@@ -102,6 +111,15 @@ func (o *Options) Run() error {
 		return errors.Wrapf(err, "failed to ")
 	}
 	o.MinkEnabled = true
+
+	// lets add to git
+	if o.GitClient == nil {
+		o.GitClient = cli.NewCLIClient("", o.CommandRunner)
+	}
+	err = gitclient.Add(o.GitClient, o.Dir, minkFileName)
+	if err != nil {
+		return errors.Wrapf(err, "failed to git add %s", minkFileName)
+	}
 	return nil
 }
 
