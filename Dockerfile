@@ -26,6 +26,7 @@ ARG TARGETOS
 LABEL maintainer="jenkins-x"
 
 COPY --from=0 /bin /bin
+COPY --from=0 /etc /etc
 COPY --from=0 /jx-mink /usr/bin/jx-mink
 
 ADD minx.sh kaniko.sh /usr/bin/
