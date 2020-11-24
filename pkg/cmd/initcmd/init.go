@@ -12,14 +12,14 @@ import (
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/templates"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient"
-	"github.com/jenkins-x/jx-helpers/v3/pkg/gitclient/cli"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/options"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/termcolor"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+
+	"github.com/go-git/go-git/v5"
 )
 
 const (
@@ -46,8 +46,8 @@ type Options struct {
 	Dir           string
 	Dockerfile    string
 	MinkEnabled   bool
+	NoGit         bool
 	CommandRunner cmdrunner.CommandRunner
-	GitClient     gitclient.Interface
 }
 
 // NewCmdMinkInit creates a command object for the command
@@ -67,6 +67,8 @@ func NewCmdMinkInit() (*cobra.Command, *Options) {
 	}
 	cmd.Flags().StringVarP(&o.Dir, "dir", "d", ".", "the directory to use")
 	cmd.Flags().StringVarP(&o.Dockerfile, "dockerfile", "f", "Dockerfile", "the name of the dockerfile to use")
+	cmd.Flags().BoolVarP(&o.NoGit, "no-git", "", false, "disables adding of the generated .mink.yaml file to git")
+
 	o.BaseOptions.AddBaseFlags(cmd)
 	return cmd, o
 }
@@ -112,13 +114,11 @@ func (o *Options) Run() error {
 	}
 	o.MinkEnabled = true
 
-	// lets add to git
-	if o.GitClient == nil {
-		o.GitClient = cli.NewCLIClient("", o.CommandRunner)
-	}
-	err = gitclient.Add(o.GitClient, o.Dir, minkFileName)
-	if err != nil {
-		return errors.Wrapf(err, "failed to git add %s", minkFileName)
+	if !o.NoGit {
+		err = o.AddToGit(o.Dir, minkFileName)
+		if err != nil {
+			return errors.Wrapf(err, "failed to add mink file to git")
+		}
 	}
 	return nil
 }
@@ -224,5 +224,25 @@ func (o *Options) addImageToValuesFile(image string, dir string) error {
 		return errors.Wrapf(err, "failed to save file %s", f)
 	}
 	log.Logger().Infof("added image %s to file %s", info(image), info(f))
+	return nil
+}
+
+// AddToGit adds the file to git in the given dir
+func (o *Options) AddToGit(dir string, name string) error {
+	r, err := git.PlainOpen(dir)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open git dir %s", dir)
+	}
+
+	t, err := r.Worktree()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get work tree")
+	}
+
+	_, err = t.Add(name)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add file %s to git", name)
+	}
+	log.Logger().Infof("added file %s to git", info(name))
 	return nil
 }
