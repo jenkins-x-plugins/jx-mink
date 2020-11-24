@@ -10,6 +10,8 @@ RUN apt-get update -y \
 	&& apt-get -yy -q install --no-install-recommends --no-install-suggests --fix-missing \
 		bash-static curl tar gzip git ca-certificates netcat-openbsd
 
+RUN ls - al /bin/bash-static
+
 RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   cd /tmp && \
   curl -k -L https://github.com/jenkins-x-plugins/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
@@ -25,8 +27,8 @@ ARG TARGETOS
 
 LABEL maintainer="jenkins-x"
 
-COPY --from=0 /bin/bash-static /bin/sh
-COPY --from=0 /jx-mink /bin//jx-mink
+COPY --from=0 /bin /bin
+COPY --from=0 /jx-mink /usr/bin/jx-mink
 
 ADD minx.sh kaniko.sh /usr/bin/
 
