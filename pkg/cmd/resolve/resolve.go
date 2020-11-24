@@ -116,6 +116,10 @@ func (o *Options) Run() error {
 }
 
 func (o *Options) createMinkEnv(m map[string]string) error {
+	home := o.getEnv("MINK_HOME")
+	if home == "" {
+		m["HOME"] = "/tekton/home"
+	}
 	gitURL := o.getEnv("MINK_GIT_URL")
 	if gitURL == "" {
 		m["MINK_GIT_URL"] = o.getEnv("REPO_URL")
