@@ -32,4 +32,4 @@ ADD minx.sh kaniko.sh /usr/bin/
 
 ENV PATH /usr/local/bin:/bin:/usr/bin:/kaniko:/ko-app
 
-ENTRYPOINT ["jx-mink"]
+ENTRYPOINT ["jx-mink", "resolve"]
