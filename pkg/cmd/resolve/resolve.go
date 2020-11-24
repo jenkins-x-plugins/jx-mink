@@ -12,6 +12,7 @@ import (
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cmdrunner"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/templates"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/termcolor"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
@@ -75,6 +76,11 @@ func (o *Options) Run() error {
 		return errors.Wrapf(err, "failed to parse %s", path)
 	}
 
+	err = o.copyKanikoDockerSecrets()
+	if err != nil {
+		return errors.Wrapf(err, "failed to copy kaniko docker secrets")
+	}
+
 	err = o.createMinkEnv(o.Env)
 	if err != nil {
 		return errors.Wrapf(err, "failed to ")
@@ -117,8 +123,8 @@ func (o *Options) Run() error {
 
 func (o *Options) createMinkEnv(m map[string]string) error {
 	home := o.getEnv("MINK_HOME")
-	if home == "" {
-		m["HOME"] = "/tekton/home"
+	if home != "" {
+		m["HOME"] = home
 	}
 	gitURL := o.getEnv("MINK_GIT_URL")
 	if gitURL == "" {
@@ -174,4 +180,31 @@ func (o *Options) invokeKaniko() error {
 	}
 	return nil
 
+}
+
+func (o *Options) copyKanikoDockerSecrets() error {
+	glob := filepath.Join("tekton", "cred-secrets", "*", ".dockerconfigjson")
+	fs, err := filepath.Glob(glob)
+	if err != nil {
+		return errors.Wrapf(err, "failed to find tekton secrets")
+	}
+	if len(fs) == 0 {
+		log.Logger().Warnf("failed to find docker secrets %s", glob)
+		return nil
+	}
+	srcFile := fs[0]
+
+	outDir := filepath.Join("kaniko", ".docker")
+	err = os.MkdirAll(outDir, files.DefaultDirWritePermissions)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create dir %s", outDir)
+	}
+	outFile := filepath.Join(outDir, "config.json")
+	err = files.CopyFile(srcFile, outFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to copy file %s to %s", srcFile, outFile)
+	}
+
+	log.Logger().Infof("copied secret %s to %s", srcFile, outFile)
+	return nil
 }
