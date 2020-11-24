@@ -16,7 +16,8 @@ RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   curl -k -L https://github.com/jenkins-x-plugins/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
   mv jx-mink /jx-mink
 
-FROM gcr.io/jenkinsxio/mink/mink:v20201124-local-6ea9cba4-dirty@sha256:d9d545c2aafe88afffd8021adc455f86616f9712c3059ceb992e6a6049f512f1
+FROM  gcr.io/jenkinsxio/mink/mink:v20201124-local-6ea9cba4-dirty@sha256:b31abf6bd52ff07c2a7c2ca0db5193ac621fe5d51c08ad4008740c74d2cc8a0b
+
 
 ARG BUILD_DATE
 ARG VERSION
@@ -30,6 +31,7 @@ COPY --from=0 /jx-mink /usr/bin/jx-mink
 
 ADD minx.sh kaniko.sh /usr/bin/
 
+ENV HOME /kaniko
 ENV PATH /usr/local/bin:/bin:/usr/bin:/kaniko:/ko-app
 
 ENTRYPOINT ["jx-mink", "resolve"]
