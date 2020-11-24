@@ -1,4 +1,4 @@
-FROM gcr.io/jenkinsxio/jx-boot:3.0.755
+FROM alpine
 
 ARG BUILD_DATE
 ARG VERSION
@@ -6,6 +6,11 @@ ARG REVISION
 ARG TARGETARCH
 ARG TARGETOS
 
+RUN addgroup -S app \
+    && adduser -S -g app app \
+    && apk --no-cache add \
+    ca-certificates curl git make netcat-openbsd
+    
 RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   cd /tmp && \
   curl -k -L https://github.com/jenkins-x-plugins/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
