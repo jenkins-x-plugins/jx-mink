@@ -3,13 +3,16 @@ package resolve
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/jenkins-x-plugins/jx-mink/pkg/cmd/initcmd"
 	"github.com/jenkins-x-plugins/jx-mink/pkg/rootcmd"
+	"github.com/jenkins-x-plugins/jx-mink/pkg/variables"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cmdrunner"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/templates"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/termcolor"
+	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -72,7 +75,12 @@ func (o *Options) Run() error {
 		o.CommandRunner = cmdrunner.DefaultCommandRunner
 	}
 
-	env := o.createMinkEnv()
+	env, err := o.createMinkEnv()
+	if err != nil {
+		return errors.Wrapf(err, "failed to ")
+	}
+
+	log.Logger().Infof("using environment: %v", info(env))
 
 	c := &cmdrunner.Command{
 		Name: "mink",
@@ -89,19 +97,31 @@ func (o *Options) Run() error {
 	return nil
 }
 
-func (o *Options) createMinkEnv() map[string]string {
-	m := map[string]string{}
-	gitURL := os.Getenv("MINK_GIT_URL")
+func (o *Options) createMinkEnv() (map[string]string, error) {
+	path := filepath.Join(o.Dir, ".jx", "variables.sh")
+	m, err := variables.ParseVariables(path)
+	if err != nil {
+		return m, errors.Wrapf(err, "failed to parse %s", path)
+	}
+
+	getEnv := func(key string) string {
+		value := m[key]
+		if value == "" {
+			value = os.Getenv(key)
+		}
+		return value
+	}
+	gitURL := getEnv("MINK_GIT_URL")
 	if gitURL == "" {
-		m["MINK_GIT_URL"] = os.Getenv("REPO_URL")
+		m["MINK_GIT_URL"] = getEnv("REPO_URL")
 	}
-	kanikoFlags := os.Getenv("MINK_KANIKO_FLAGS")
+	kanikoFlags := getEnv("MINK_KANIKO_FLAGS")
 	if kanikoFlags == "" {
-		m["MINK_KANIKO_FLAGS"] = os.Getenv("KANIKO_FLAGS")
+		m["MINK_KANIKO_FLAGS"] = getEnv("KANIKO_FLAGS")
 	}
-	output := os.Getenv("MINK_OUTPUT")
+	output := getEnv("MINK_OUTPUT")
 	if output == "" {
 		m["MINK_OUTPUT"] = "."
 	}
-	return m
+	return m, nil
 }

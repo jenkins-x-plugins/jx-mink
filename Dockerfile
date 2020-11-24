@@ -30,6 +30,6 @@ COPY --from=0 /jx-mink /usr/bin/jx-mink
 
 ADD minx.sh kaniko.sh /usr/bin/
 
-ENV PATH /usr/local/bin:/bin:/usr/bin:/kaniko
+ENV PATH /usr/local/bin:/bin:/usr/bin:/kaniko:/ko-app
 
-ENTRYPOINT ["minx.sh"]
+ENTRYPOINT ["jx-mink"]
