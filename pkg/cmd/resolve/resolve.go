@@ -183,7 +183,7 @@ func (o *Options) invokeKaniko() error {
 }
 
 func (o *Options) copyKanikoDockerSecrets() error {
-	glob := filepath.Join("tekton", "cred-secrets", "*", ".dockerconfigjson")
+	glob := filepath.Join("/tekton", "cred-secrets", "*", ".dockerconfigjson")
 	fs, err := filepath.Glob(glob)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find tekton secrets")
@@ -194,7 +194,7 @@ func (o *Options) copyKanikoDockerSecrets() error {
 	}
 	srcFile := fs[0]
 
-	outDir := filepath.Join("kaniko", ".docker")
+	outDir := filepath.Join("/kaniko", ".docker")
 	err = os.MkdirAll(outDir, files.DefaultDirWritePermissions)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create dir %s", outDir)
