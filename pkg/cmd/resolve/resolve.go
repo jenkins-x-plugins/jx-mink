@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jenkins-x-plugins/jx-mink/pkg/cmd/initcmd"
 	"github.com/jenkins-x-plugins/jx-mink/pkg/rootcmd"
@@ -15,6 +16,10 @@ import (
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+)
+
+const (
+	useKaniko = "PLAIN_KANIKO"
 )
 
 var (
@@ -37,6 +42,7 @@ type Options struct {
 	initcmd.Options
 	Args          []string
 	CommandRunner cmdrunner.CommandRunner
+	Env           map[string]string
 }
 
 // NewCmdMinkResolve creates a command object for the command
@@ -62,7 +68,24 @@ func NewCmdMinkResolve() (*cobra.Command, *Options) {
 
 // Run transforms the YAML files
 func (o *Options) Run() error {
-	err := o.Options.Run()
+	var err error
+	path := filepath.Join(o.Dir, ".jx", "variables.sh")
+	o.Env, err = variables.ParseVariables(path)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse %s", path)
+	}
+
+	err = o.createMinkEnv(o.Env)
+	if err != nil {
+		return errors.Wrapf(err, "failed to ")
+	}
+
+	useKaniko := o.getEnv(useKaniko)
+	if useKaniko == "true" || useKaniko == "yes" {
+		return o.invokeKaniko()
+	}
+
+	err = o.Options.Run()
 	if err != nil {
 		return errors.Wrapf(err, "failed to initialise mink")
 	}
@@ -75,12 +98,7 @@ func (o *Options) Run() error {
 		o.CommandRunner = cmdrunner.DefaultCommandRunner
 	}
 
-	env, err := o.createMinkEnv()
-	if err != nil {
-		return errors.Wrapf(err, "failed to ")
-	}
-
-	log.Logger().Infof("using environment: %v", info(env))
+	log.Logger().Infof("using environment: %v", info(o.Env))
 
 	c := &cmdrunner.Command{
 		Name: "mink",
@@ -88,7 +106,7 @@ func (o *Options) Run() error {
 		Out:  os.Stdout,
 		Err:  os.Stderr,
 		In:   os.Stdin,
-		Env:  env,
+		Env:  o.Env,
 	}
 	_, err = o.CommandRunner(c)
 	if err != nil {
@@ -97,31 +115,59 @@ func (o *Options) Run() error {
 	return nil
 }
 
-func (o *Options) createMinkEnv() (map[string]string, error) {
-	path := filepath.Join(o.Dir, ".jx", "variables.sh")
-	m, err := variables.ParseVariables(path)
-	if err != nil {
-		return m, errors.Wrapf(err, "failed to parse %s", path)
-	}
-
-	getEnv := func(key string) string {
-		value := m[key]
-		if value == "" {
-			value = os.Getenv(key)
-		}
-		return value
-	}
-	gitURL := getEnv("MINK_GIT_URL")
+func (o *Options) createMinkEnv(m map[string]string) error {
+	gitURL := o.getEnv("MINK_GIT_URL")
 	if gitURL == "" {
-		m["MINK_GIT_URL"] = getEnv("REPO_URL")
+		m["MINK_GIT_URL"] = o.getEnv("REPO_URL")
 	}
-	kanikoFlags := getEnv("MINK_KANIKO_FLAGS")
+	kanikoFlags := o.getEnv("MINK_KANIKO_FLAGS")
 	if kanikoFlags == "" {
-		m["MINK_KANIKO_FLAGS"] = getEnv("KANIKO_FLAGS")
+		m["MINK_KANIKO_FLAGS"] = o.getEnv("KANIKO_FLAGS")
 	}
-	output := getEnv("MINK_OUTPUT")
+	output := o.getEnv("MINK_OUTPUT")
 	if output == "" {
 		m["MINK_OUTPUT"] = "."
 	}
-	return m, nil
+	return nil
+}
+
+func (o *Options) getEnv(key string) string {
+	value := o.Env[key]
+	if value == "" {
+		value = os.Getenv(key)
+	}
+	return value
+}
+
+func (o *Options) invokeKaniko() error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get current working directory")
+	}
+
+	image := o.getEnv("MINK_IMAGE")
+	context := o.getEnv("KANIKO_CONTEXT")
+	if context == "" {
+		context = filepath.Join(wd, "Dockerfile")
+	}
+
+	args := []string{"--destination", image, "--context", context}
+	flags := o.getEnv("KANIKO_FLAGS")
+	args = append(args, strings.Split(flags, " ")...)
+
+	c := &cmdrunner.Command{
+		Name: "/kaniko/executor",
+		Args: args,
+		Out:  os.Stdout,
+		Err:  os.Stderr,
+		In:   os.Stdin,
+		Env:  o.Env,
+	}
+	log.Logger().Infof("running command: %s", info(c.CLI()))
+	_, err = o.CommandRunner(c)
+	if err != nil {
+		return errors.Wrapf(err, "failed to run %s", c.CLI())
+	}
+	return nil
+
 }
