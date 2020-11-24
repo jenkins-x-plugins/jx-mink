@@ -69,6 +69,10 @@ func NewCmdMinkResolve() (*cobra.Command, *Options) {
 
 // Run transforms the YAML files
 func (o *Options) Run() error {
+	if o.CommandRunner == nil {
+		o.CommandRunner = cmdrunner.DefaultCommandRunner
+	}
+
 	var err error
 	path := filepath.Join(o.Dir, ".jx", "variables.sh")
 	o.Env, err = variables.ParseVariables(path)
@@ -98,10 +102,6 @@ func (o *Options) Run() error {
 
 	if !o.MinkEnabled {
 		return nil
-	}
-
-	if o.CommandRunner == nil {
-		o.CommandRunner = cmdrunner.DefaultCommandRunner
 	}
 
 	log.Logger().Infof("using environment: %v", info(o.Env))
