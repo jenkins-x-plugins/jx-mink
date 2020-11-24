@@ -183,7 +183,7 @@ func (o *Options) invokeKaniko() error {
 }
 
 func (o *Options) copyKanikoDockerSecrets() error {
-	glob := filepath.Join("/tekton", "cred-secrets", "*", ".dockerconfigjson")
+	glob := filepath.Join("/tekton", "creds-secrets", "*", ".dockerconfigjson")
 	fs, err := filepath.Glob(glob)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find tekton secrets")
