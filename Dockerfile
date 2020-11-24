@@ -17,7 +17,7 @@ RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   curl -k -L https://github.com/jenkins-x-plugins/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
   mv jx-mink /out/jx-mink
 
-FROM gcr.io/jenkinsxio/mink/mink:v20201124-local-6ea9cba4-dirty
+FROM gcr.io/jenkinsxio/mink/mink:v20201124-local-6ea9cba4-dirty@sha256:5cb24ad8efffc82c6ed4f6a95b292fa5e068b6cd85743230d8b5c6179c49460e
 
 ARG BUILD_DATE
 ARG VERSION
