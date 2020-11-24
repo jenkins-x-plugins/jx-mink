@@ -15,7 +15,7 @@ RUN cp /bin/bash-static /sh
 RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   cd /tmp && \
   curl -k -L https://github.com/jenkins-x-plugins/jx-mink/releases/download/v$VERSION/jx-mink-$TARGETOS-$TARGETARCH.tar.gz | tar xzv && \
-  mv jx-mink /sh
+  mv jx-mink /usr/bin/jx-mink
 
 FROM gcr.io/jenkinsxio/mink/mink:v20201123-local-7fd0bff2-dirty
 
