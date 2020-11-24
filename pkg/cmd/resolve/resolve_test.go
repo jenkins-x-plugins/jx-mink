@@ -49,3 +49,21 @@ func TestMinkResolve(t *testing.T) {
 
 	}
 }
+
+func TestMinkResolveLocalKaniko(t *testing.T) {
+	name := "local-kaniko"
+
+	runner := &fakerunner.FakeRunner{}
+
+	_, o := resolve.NewCmdMinkResolve()
+	o.Dir = filepath.Join("test_data", "dockerfile")
+	o.CommandRunner = runner.Run
+	o.PlainKaniko = true
+	err := o.Run()
+	require.NoError(t, err, "failed for test %s", name)
+
+	for _, c := range runner.OrderedCommands {
+		t.Logf("test %s invoked: %s\n", name, c.CLI())
+	}
+	require.NotEmpty(t, runner.OrderedCommands, "should have ran a command for %s", name)
+}

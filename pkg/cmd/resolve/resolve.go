@@ -13,6 +13,7 @@ import (
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/templates"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/stringhelpers"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/termcolor"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
 	"github.com/pkg/errors"
@@ -42,6 +43,7 @@ var (
 type Options struct {
 	initcmd.Options
 	Args          []string
+	PlainKaniko   bool
 	CommandRunner cmdrunner.CommandRunner
 	Env           map[string]string
 }
@@ -64,6 +66,7 @@ func NewCmdMinkResolve() (*cobra.Command, *Options) {
 	}
 	cmd.Flags().StringVarP(&o.Dir, "dir", "d", ".", "the directory to use")
 	cmd.Flags().StringVarP(&o.Dockerfile, "dockerfile", "f", "Dockerfile", "the name of the dockerfile to use")
+	cmd.Flags().BoolVarP(&o.PlainKaniko, "plain-kaniko", "", false, "to enable plain kaniko. If not specified defaults to $PLAIN_KANIKO from the env or from the variable in .jx/variables.sh")
 	return cmd, o
 }
 
@@ -91,7 +94,7 @@ func (o *Options) Run() error {
 	}
 
 	useKaniko := o.getEnv(useKaniko)
-	if useKaniko == "true" || useKaniko == "yes" {
+	if o.PlainKaniko || useKaniko == "true" || useKaniko == "yes" {
 		return o.invokeKaniko()
 	}
 
@@ -156,12 +159,37 @@ func (o *Options) invokeKaniko() error {
 	}
 
 	image := o.getEnv("MINK_IMAGE")
+	if image == "" {
+		registry := o.getEnv("DOCKER_REGISTRY")
+		owner := o.getEnv("DOCKER_REGISTRY_ORG")
+		app := o.getEnv("APP_NAME")
+		if app == "" {
+			_, app = filepath.Split(wd)
+		}
+		version := o.getEnv("VERSION")
+		if version != "" {
+			app += ":" + version
+		}
+		names := []string{registry, owner, app}
+		// allow the registry or registry and owner to be removed
+		if names[0] == "" {
+			names = names[1:]
+		}
+		if names[0] == "" {
+			names = names[1:]
+		}
+		image = stringhelpers.UrlJoin(names...)
+	}
 	context := o.getEnv("KANIKO_CONTEXT")
 	if context == "" {
-		context = filepath.Join(wd, "Dockerfile")
+		context = wd
+	}
+	dockerfile := o.getEnv("KANIKO_DOCKERFILE")
+	if dockerfile == "" {
+		dockerfile = filepath.Join(context, "Dockerfile")
 	}
 
-	args := []string{"--destination", image, "--context", context}
+	args := []string{"--destination", image, "--context", context, "--dockerfile", dockerfile}
 	flags := o.getEnv("KANIKO_FLAGS")
 	args = append(args, strings.Split(flags, " ")...)
 

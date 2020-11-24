@@ -12,6 +12,7 @@ import (
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/helper"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/cobras/templates"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/files"
+	"github.com/jenkins-x/jx-helpers/v3/pkg/kube"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/options"
 	"github.com/jenkins-x/jx-helpers/v3/pkg/termcolor"
 	"github.com/jenkins-x/jx-logging/v3/pkg/log"
@@ -152,6 +153,13 @@ func (o *Options) createMinkFile(file string, dirs []string) error {
 		buf.WriteString(d)
 		buf.WriteString("\n")
 	}
+	buf.WriteString("\n")
+
+	if kube.IsInCluster() {
+		buf.WriteString("# if enabled invoke kaniko builds directly rather than using a separate TaskRun")
+		buf.WriteString("local-kaniko: true")
+	}
+	buf.WriteString("\n")
 	text := buf.String()
 
 	err := ioutil.WriteFile(file, []byte(text), files.DefaultFileWritePermissions)
