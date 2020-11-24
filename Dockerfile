@@ -8,7 +8,7 @@ ARG TARGETOS
 
 RUN apt-get update -y \
 	&& apt-get -yy -q install --no-install-recommends --no-install-suggests --fix-missing \
-		bash-static curl
+		bash-static curl git ca-certificates netcat-openbsd
 
 RUN cp /bin/bash-static /sh
 
