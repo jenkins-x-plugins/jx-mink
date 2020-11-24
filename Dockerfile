@@ -1,14 +1,10 @@
-FROM debian:buster-slim as builder
+FROM gcr.io/jenkinsxio/jx-boot:3.0.755
 
 ARG BUILD_DATE
 ARG VERSION
 ARG REVISION
 ARG TARGETARCH
 ARG TARGETOS
-
-RUN apt-get update -y \
-	&& apt-get -yy -q install --no-install-recommends --no-install-suggests --fix-missing \
-		bash-static curl tar gzip git ca-certificates netcat-openbsd
 
 RUN echo using jx-mink version $VERSION and OS $TARGETOS arch $TARGETARCH && \
   cd /tmp && \
@@ -25,8 +21,6 @@ ARG TARGETOS
 
 LABEL maintainer="jenkins-x"
 
-COPY --from=0 /bin /bin
-COPY --from=0 /etc /etc
 COPY --from=0 /jx-mink /usr/bin/jx-mink
 
 ADD minx.sh kaniko.sh /usr/bin/
